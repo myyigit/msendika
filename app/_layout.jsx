@@ -21,7 +21,7 @@ function AuthGate() {
         } else if (isAuthenticated && inAuth) {
             router.replace('/(app)');
         }
-    }, [isAuthenticated, loading, segments]);
+    }, [isAuthenticated, loading]);
 
     return null;
 }
@@ -32,7 +32,10 @@ export default function RootLayout() {
             <MemberProvider>
                 <StatusBar style="light" />
                 <AuthGate />
-                <Stack screenOptions={{ headerShown: false }} />
+                <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(app)" />
+                </Stack>
             </MemberProvider>
         </AuthProvider>
     );
