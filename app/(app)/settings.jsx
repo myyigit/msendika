@@ -61,7 +61,7 @@ export default function SettingsScreen() {
             const jsonStr = exportBackup();
             const filename = `sendika-yedek-${new Date().toISOString().slice(0, 10)}.json`;
             const fileUri = FileSystem.documentDirectory + filename;
-            await FileSystem.writeAsStringAsync(fileUri, jsonStr, { encoding: FileSystem.EncodingType.UTF8 });
+            await FileSystem.writeAsStringAsync(fileUri, jsonStr);
             const canShare = await Sharing.isAvailableAsync();
             if (canShare) {
                 await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Yedeği Paylaş' });
@@ -83,7 +83,7 @@ export default function SettingsScreen() {
             if (result.canceled || !result.assets?.length) return;
 
             const file = result.assets[0];
-            const content = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.UTF8 });
+            const content = await FileSystem.readAsStringAsync(file.uri);
 
             Alert.alert(
                 '⚠️ Geri Yükleme',
