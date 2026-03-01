@@ -38,7 +38,7 @@ export default function SetupScreen() {
                     <View style={styles.logoCircle}>
                         <Text style={styles.logoIcon}>🛡️</Text>
                     </View>
-                    <Text style={styles.appName}>YGT Tech</Text>
+                    <Text style={styles.appName}>zRapor</Text>
                     <Text style={styles.appSub}>İlk Kurulum</Text>
                 </View>
 
@@ -50,7 +50,7 @@ export default function SetupScreen() {
                     <View style={styles.inputWrap}>
                         <Text style={styles.inputIcon}>👤</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { flex: 1 }]}
                             placeholder="Kullanıcı adı (min. 3 karakter)"
                             placeholderTextColor="#6b7280"
                             value={username}
@@ -79,7 +79,7 @@ export default function SetupScreen() {
                     <View style={styles.inputWrap}>
                         <Text style={styles.inputIcon}>🔒</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { flex: 1 }]}
                             placeholder="Parolayı tekrar girin"
                             placeholderTextColor="#6b7280"
                             value={password2}

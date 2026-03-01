@@ -4,11 +4,11 @@ import {
     StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useConfig } from '../../context/ConfigContext';
 import { useMembers } from '../../context/MemberContext';
-import { departmanlar, meslekler } from '../../data/mockData';
 
 const initForm = {
-    ad: '', soyad: '', tcKimlik: '', dogumTarihi: '', meslek: '',
+    ad: '', soyad: '', tcKimlik: '', dogumTarihi: '', kurum: '', meslek: '',
     departman: '', iseGirisTarihi: '', telefon: '', email: '', adres: '',
     maas: '', uyelikDurumu: 'aktif',
 };
@@ -68,8 +68,10 @@ function Picker({ value, onSelect, options, placeholder }) {
 }
 
 export default function AddMemberScreen() {
-    const { addMember } = useMembers();
     const router = useRouter();
+    const { addMember, stats } = useMembers();
+    const { config } = useConfig();
+
     const [form, setForm] = useState(initForm);
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
@@ -81,10 +83,12 @@ export default function AddMemberScreen() {
 
     const validate = () => {
         const e = {};
+
         if (!form.ad.trim()) e.ad = 'Ad zorunlu';
         if (!form.soyad.trim()) e.soyad = 'Soyad zorunlu';
         if (!form.tcKimlik.trim()) e.tcKimlik = 'TC Kimlik zorunlu';
         else if (!/^\d{11}$/.test(form.tcKimlik)) e.tcKimlik = '11 haneli rakam olmalı';
+        if (!form.kurum) e.kurum = 'Kurum seçin';
         if (!form.meslek) e.meslek = 'Meslek seçin';
         if (!form.departman) e.departman = 'Departman seçin';
         if (!form.iseGirisTarihi.trim()) e.iseGirisTarihi = 'İşe giriş tarihi zorunlu';
@@ -93,8 +97,24 @@ export default function AddMemberScreen() {
     };
 
     const handleSubmit = async () => {
+        // Check Licensing
+        const count = stats.toplam;
+        const tier = config.license || 'free';
+
+        if (tier === 'free' && count >= 10) {
+            Alert.alert('Lisans Limiti', 'Ücretsiz sürüm limiti (Maks. 10 kayıt) doldu. Lütfen Ayarlar sayfasından "PRO" veya "SUPER" lisans kodunuzu girin.');
+            return;
+        }
+        if (tier === 'pro' && count >= 25) {
+            Alert.alert('Lisans Limiti', 'Pro sürüm limiti (Maks. 25 kayıt) doldu. Sınırsız kayıt için lütfen Ayarlar sayfasından "SUPER" lisans kodunuzu girin.');
+            return;
+        }
+
         const e = validate();
-        if (Object.keys(e).length > 0) { setErrors(e); return; }
+        if (Object.keys(e).length > 0) {
+            setErrors(e);
+            return;
+        }
         setSaving(true);
         await new Promise((r) => setTimeout(r, 500));
         const newMember = addMember({ ...form, maas: form.maas ? Number(form.maas) : 0 });
@@ -128,11 +148,14 @@ export default function AddMemberScreen() {
             {/* İş */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>💼 İş Bilgileri</Text>
+                <Field label="Kurum" required error={errors.kurum}>
+                    <Picker value={form.kurum} onSelect={set('kurum')} options={config.kurumlar} placeholder="Kurum seçin..." />
+                </Field>
                 <Field label="Meslek" required error={errors.meslek}>
-                    <Picker value={form.meslek} onSelect={set('meslek')} options={meslekler} placeholder="Meslek seçin..." />
+                    <Picker value={form.meslek} onSelect={set('meslek')} options={config.meslekler} placeholder="Meslek seçin..." />
                 </Field>
                 <Field label="Departman" required error={errors.departman}>
-                    <Picker value={form.departman} onSelect={set('departman')} options={departmanlar} placeholder="Departman seçin..." />
+                    <Picker value={form.departman} onSelect={set('departman')} options={config.departmanlar} placeholder="Departman seçin..." />
                 </Field>
                 <Field label="İşe Giriş Tarihi" required error={errors.iseGirisTarihi}>
                     <Input value={form.iseGirisTarihi} onChangeText={set('iseGirisTarihi')} placeholder="2020-01-01" />

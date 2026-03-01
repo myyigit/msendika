@@ -53,7 +53,7 @@ export function MemberProvider({ children }) {
         const newMember = {
             ...data,
             id: Date.now(),
-            sicilNo: `SGK-${String(counterRef.current).padStart(3, '0')}`,
+            sicilNo: String(counterRef.current).padStart(4, '0'), // SGK- kaldirildi
             uyelikTarihi: new Date().toISOString().split('T')[0],
         };
         setMembers((prev) => [...prev, newMember]);
@@ -70,9 +70,9 @@ export function MemberProvider({ children }) {
 
     const getMember = (id) => members.find((m) => m.id === Number(id));
 
-    // Yedek al: tüm üyeleri JSON string olarak döndür
-    const exportBackup = useCallback(() => {
-        return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), members });
+    // Yedek al: tüm üyeleri JSON string olarak döndür. Yeni versiyonda config de dahil ediliyor.
+    const exportBackup = useCallback((systemConfig = {}) => {
+        return JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), members, config: systemConfig });
     }, [members]);
 
     // Yedekten geri yükle
@@ -88,7 +88,7 @@ export function MemberProvider({ children }) {
             const maxId = data.members.reduce((max, m) => (m.id > max ? m.id : max), 0);
             counterRef.current = maxId;
             await AsyncStorage.setItem(COUNTER_KEY, String(maxId));
-            return { ok: true, count: data.members.length };
+            return { ok: true, count: data.members.length, config: data.config };
         } catch (_) {
             return { ok: false, error: 'Dosya okunamadı veya bozuk.' };
         }

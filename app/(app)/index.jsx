@@ -1,4 +1,5 @@
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, LayoutAnimation } from 'react-native';
 import { useMembers } from '../../context/MemberContext';
 import { useRouter } from 'expo-router';
 
@@ -26,17 +27,29 @@ export default function DashboardScreen() {
         .sort((a, b) => new Date(b.uyelikTarihi) - new Date(a.uyelikTarihi))
         .slice(0, 5);
 
-    const deptStats = members.reduce((acc, m) => {
-        acc[m.departman] = (acc[m.departman] || 0) + 1;
+    const [expandedKurum, setExpandedKurum] = useState(null);
+
+    // Group members by Kurum -> Department logic
+    const nestedStats = members.reduce((acc, m) => {
+        const k = m.kurum || 'Belirtilmemiş';
+        const d = m.departman || 'Belirtilmemiş';
+        if (!acc[k]) acc[k] = { total: 0, depts: {} };
+        acc[k].total += 1;
+        acc[k].depts[d] = (acc[k].depts[d] || 0) + 1;
         return acc;
     }, {});
 
-    const topDepts = Object.entries(deptStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const kurumList = Object.entries(nestedStats).sort((a, b) => b[1].total - a[1].total);
+
+    const toggleKurum = (k) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setExpandedKurum(expandedKurum === k ? null : k);
+    };
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <Text style={styles.welcome}>Hoş geldiniz 👋</Text>
-            <Text style={styles.sub}>Sendika üyelik özeti</Text>
+            <Text style={styles.sub}>Üyelik sistemi özeti</Text>
 
             {/* Stats Grid */}
             <View style={styles.statsGrid}>
@@ -70,20 +83,53 @@ export default function DashboardScreen() {
                 ))}
             </View>
 
-            {/* Dept Stats */}
+            {/* Kurum Stats with Inner Dept Stats */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>📈 Departman Dağılımı</Text>
-                {topDepts.map(([dep, count]) => {
-                    const pct = Math.round((count / stats.toplam) * 100);
+                <Text style={styles.sectionTitle}>🏢 Kurum & Departman Dağılımı</Text>
+                {kurumList.length === 0 && <Text style={{ color: '#9ca3af', fontSize: 13 }}>Henüz veri yok.</Text>}
+                {kurumList.map(([kr, data]) => {
+                    const isExpanded = expandedKurum === kr;
+                    const pct = stats.toplam > 0 ? Math.round((data.total / stats.toplam) * 100) : 0;
+                    const sortedDepts = Object.entries(data.depts).sort((a, b) => b[1] - a[1]);
+
                     return (
-                        <View key={dep} style={styles.depRow}>
-                            <View style={styles.depHeader}>
-                                <Text style={styles.depName}>{dep}</Text>
-                                <Text style={styles.depCount}>{count} üye</Text>
-                            </View>
-                            <View style={styles.bar}>
-                                <View style={[styles.barFill, { width: `${pct}%` }]} />
-                            </View>
+                        <View key={kr} style={styles.depContainer}>
+                            <TouchableOpacity
+                                style={[styles.depRow, isExpanded && styles.depRowExpanded]}
+                                onPress={() => toggleKurum(kr)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.depHeader}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Text style={{ color: '#9ca3af', fontSize: 12 }}>{isExpanded ? '▼' : '▶'}</Text>
+                                        <Text style={styles.depName}>{kr}</Text>
+                                    </View>
+                                    <Text style={styles.depCount}>{data.total} üye</Text>
+                                </View>
+                                <View style={styles.bar}>
+                                    <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: '#f59e0b' }]} />
+                                </View>
+                            </TouchableOpacity>
+
+                            {/* Departman Listesi (Only visible if expanded) */}
+                            {isExpanded && (
+                                <View style={styles.innerDeptContainer}>
+                                    {sortedDepts.map(([dep, count]) => {
+                                        const depPct = data.total > 0 ? Math.round((count / data.total) * 100) : 0;
+                                        return (
+                                            <View key={dep} style={styles.innerDepRow}>
+                                                <View style={styles.depHeader}>
+                                                    <Text style={styles.innerDepName}>{dep}</Text>
+                                                    <Text style={styles.innerDepCount}>{count}</Text>
+                                                </View>
+                                                <View style={styles.innerBar}>
+                                                    <View style={[styles.innerBarFill, { width: `${depPct}%` }]} />
+                                                </View>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            )}
                         </View>
                     );
                 })}
@@ -141,10 +187,23 @@ const styles = StyleSheet.create({
     memberRole: { color: '#9ca3af', fontSize: 12, marginTop: 1 },
     badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
     badgeText: { fontSize: 11, fontWeight: '600' },
-    depRow: { marginBottom: 12 },
+    depContainer: { marginBottom: 12 },
+    depRow: { padding: 12, backgroundColor: '#1f2937', borderRadius: 10 },
+    depRowExpanded: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
     depHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-    depName: { color: '#d1d5db', fontSize: 13 },
+    depName: { color: '#d1d5db', fontSize: 13, fontWeight: '600' },
     depCount: { color: '#6b7280', fontSize: 12 },
-    bar: { height: 6, backgroundColor: '#1f2937', borderRadius: 4, overflow: 'hidden' },
+    bar: { height: 6, backgroundColor: '#374151', borderRadius: 4, overflow: 'hidden' },
     barFill: { height: '100%', backgroundColor: '#3b82f6', borderRadius: 4 },
+    innerDeptContainer: {
+        backgroundColor: '#111827',
+        borderWidth: 1, borderTopWidth: 0, borderColor: '#1f2937',
+        borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
+        padding: 12, paddingTop: 8
+    },
+    innerDepRow: { marginBottom: 10 },
+    innerDepName: { color: '#9ca3af', fontSize: 12 },
+    innerDepCount: { color: '#6b7280', fontSize: 11 },
+    innerBar: { height: 4, backgroundColor: '#1f2937', borderRadius: 2, overflow: 'hidden' },
+    innerBarFill: { height: '100%', backgroundColor: '#3b82f6', borderRadius: 2 },
 });

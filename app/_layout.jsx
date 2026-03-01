@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { MemberProvider } from '../context/MemberContext';
+import { ConfigProvider } from '../context/ConfigContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 function AuthGate() {
@@ -35,15 +37,20 @@ function AuthGate() {
 
 export default function RootLayout() {
     return (
-        <AuthProvider>
-            <MemberProvider>
-                <StatusBar style="light" />
-                <AuthGate />
-                <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="(auth)" />
-                    <Stack.Screen name="(app)" />
-                </Stack>
-            </MemberProvider>
-        </AuthProvider>
+        <SafeAreaProvider>
+            <AuthProvider>
+                <ConfigProvider>
+                    <MemberProvider>
+                        <StatusBar style="light" />
+                        <AuthGate />
+                        <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen name="(auth)/login" />
+                            <Stack.Screen name="(auth)/setup" />
+                            <Stack.Screen name="(app)" />
+                        </Stack>
+                    </MemberProvider>
+                </ConfigProvider>
+            </AuthProvider>
+        </SafeAreaProvider>
     );
 }

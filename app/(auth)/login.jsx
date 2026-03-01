@@ -35,8 +35,8 @@ export default function LoginScreen() {
                     <View style={styles.logoCircle}>
                         <Text style={styles.logoIcon}>🛡️</Text>
                     </View>
-                    <Text style={styles.appName}>YGT Tech</Text>
-                    <Text style={styles.appSub}>Sendika Takip Sistemi</Text>
+                    <Text style={styles.appName}>zRapor</Text>
+                    <Text style={styles.appSub}>Personel Takip Sistemi</Text>
                 </View>
 
                 {/* Form */}

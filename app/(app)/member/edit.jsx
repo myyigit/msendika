@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useMembers } from '../../../context/MemberContext';
-import { departmanlar, meslekler } from '../../../data/mockData';
+import { useConfig } from '../../../context/ConfigContext';
 
 function Field({ label, required, error, children }) {
     return (
@@ -65,6 +65,7 @@ export default function EditMemberScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const { getMember, updateMember } = useMembers();
+    const { config } = useConfig();
 
     const [form, setForm] = useState(null);
     const [errors, setErrors] = useState({});
@@ -93,6 +94,7 @@ export default function EditMemberScreen() {
         if (!form.soyad.trim()) e.soyad = 'Soyad zorunlu';
         if (!form.tcKimlik?.trim()) e.tcKimlik = 'TC Kimlik zorunlu';
         else if (!/^\d{11}$/.test(form.tcKimlik)) e.tcKimlik = '11 haneli rakam olmalı';
+        if (!form.kurum) e.kurum = 'Kurum seçin';
         if (!form.meslek) e.meslek = 'Meslek seçin';
         if (!form.departman) e.departman = 'Departman seçin';
         if (!form.iseGirisTarihi?.trim()) e.iseGirisTarihi = 'İşe giriş tarihi zorunlu';
@@ -147,11 +149,14 @@ export default function EditMemberScreen() {
             {/* İş */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>💼 İş Bilgileri</Text>
+                <Field label="Kurum" required error={errors.kurum}>
+                    <Picker value={form.kurum} onSelect={set('kurum')} options={config.kurumlar} placeholder="Kurum seçin..." />
+                </Field>
                 <Field label="Meslek" required error={errors.meslek}>
-                    <Picker value={form.meslek} onSelect={set('meslek')} options={meslekler} placeholder="Meslek seçin..." />
+                    <Picker value={form.meslek} onSelect={set('meslek')} options={config.meslekler} placeholder="Meslek seçin..." />
                 </Field>
                 <Field label="Departman" required error={errors.departman}>
-                    <Picker value={form.departman} onSelect={set('departman')} options={departmanlar} placeholder="Departman seçin..." />
+                    <Picker value={form.departman} onSelect={set('departman')} options={config.departmanlar} placeholder="Departman seçin..." />
                 </Field>
                 <Field label="İşe Giriş Tarihi" required error={errors.iseGirisTarihi}>
                     <Input value={form.iseGirisTarihi} onChangeText={set('iseGirisTarihi')} placeholder="2020-01-01" />
