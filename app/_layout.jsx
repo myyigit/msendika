@@ -5,23 +5,30 @@ import { MemberProvider } from '../context/MemberContext';
 import { StatusBar } from 'expo-status-bar';
 
 function AuthGate() {
-    const { isAuthenticated, loading, checkSession } = useAuth();
+    const { isAuthenticated, loading, checkSession, isFirstRun } = useAuth();
     const router = useRouter();
     const segments = useSegments();
 
     useEffect(() => {
         checkSession();
-    }, []);
+    }, [checkSession]);
 
     useEffect(() => {
         if (loading) return;
+
+        if (isFirstRun) {
+            // Hiç kurulum yapılmamış → setup ekranına yönlendir
+            router.replace('/(auth)/setup');
+            return;
+        }
+
         const inAuth = segments[0] === '(auth)';
         if (!isAuthenticated && !inAuth) {
             router.replace('/(auth)/login');
         } else if (isAuthenticated && inAuth) {
             router.replace('/(app)');
         }
-    }, [isAuthenticated, loading, segments]);
+    }, [isAuthenticated, loading, isFirstRun]);
 
     return null;
 }
@@ -32,7 +39,10 @@ export default function RootLayout() {
             <MemberProvider>
                 <StatusBar style="light" />
                 <AuthGate />
-                <Stack screenOptions={{ headerShown: false }} />
+                <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(app)" />
+                </Stack>
             </MemberProvider>
         </AuthProvider>
     );

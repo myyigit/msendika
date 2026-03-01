@@ -1,17 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useMembers } from '../../context/MemberContext';
-import { departmanlar, meslekler } from '../../data/mockData';
-
-const initForm = {
-    ad: '', soyad: '', tcKimlik: '', dogumTarihi: '', meslek: '',
-    departman: '', iseGirisTarihi: '', telefon: '', email: '', adres: '',
-    maas: '', uyelikDurumu: 'aktif',
-};
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useMembers } from '../../../context/MemberContext';
+import { departmanlar, meslekler } from '../../../data/mockData';
 
 function Field({ label, required, error, children }) {
     return (
@@ -67,12 +61,26 @@ function Picker({ value, onSelect, options, placeholder }) {
     );
 }
 
-export default function AddMemberScreen() {
-    const { addMember } = useMembers();
+export default function EditMemberScreen() {
+    const { id } = useLocalSearchParams();
     const router = useRouter();
-    const [form, setForm] = useState(initForm);
+    const { getMember, updateMember } = useMembers();
+
+    const [form, setForm] = useState(null);
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        const member = getMember(id);
+        if (member) {
+            setForm({
+                ...member,
+                maas: member.maas ? String(member.maas) : '',
+            });
+        }
+    }, [id]);
+
+    if (!form) return null; // veya loading
 
     const set = (field) => (val) => {
         setForm((p) => ({ ...p, [field]: val }));
@@ -83,11 +91,11 @@ export default function AddMemberScreen() {
         const e = {};
         if (!form.ad.trim()) e.ad = 'Ad zorunlu';
         if (!form.soyad.trim()) e.soyad = 'Soyad zorunlu';
-        if (!form.tcKimlik.trim()) e.tcKimlik = 'TC Kimlik zorunlu';
+        if (!form.tcKimlik?.trim()) e.tcKimlik = 'TC Kimlik zorunlu';
         else if (!/^\d{11}$/.test(form.tcKimlik)) e.tcKimlik = '11 haneli rakam olmalı';
         if (!form.meslek) e.meslek = 'Meslek seçin';
         if (!form.departman) e.departman = 'Departman seçin';
-        if (!form.iseGirisTarihi.trim()) e.iseGirisTarihi = 'İşe giriş tarihi zorunlu';
+        if (!form.iseGirisTarihi?.trim()) e.iseGirisTarihi = 'İşe giriş tarihi zorunlu';
         if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Geçerli e-posta girin';
         return e;
     };
@@ -96,18 +104,29 @@ export default function AddMemberScreen() {
         const e = validate();
         if (Object.keys(e).length > 0) { setErrors(e); return; }
         setSaving(true);
-        await new Promise((r) => setTimeout(r, 500));
-        const newMember = addMember({ ...form, maas: form.maas ? Number(form.maas) : 0 });
+        await new Promise((r) => setTimeout(r, 400));
+
+        // Formu temizle ve güncelle
+        const updatedData = { ...form, maas: form.maas ? Number(form.maas) : 0 };
+        updateMember(Number(id), updatedData);
+
         setSaving(false);
-        setForm(initForm);
-        Alert.alert('✅ Başarılı', `${newMember.ad} ${newMember.soyad} eklendi.`, [
-            { text: 'Detaya Git', onPress: () => router.push(`/(app)/member/${newMember.id}`) },
-            { text: 'Üye Listesi', onPress: () => router.push('/(app)/members') },
+        Alert.alert('✅ Başarılı', 'Üye bilgileri güncellendi.', [
+            { text: 'Tamam', onPress: () => router.back() },
         ]);
     };
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+            <View style={styles.headerArea}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtnWrap}>
+                    <Text style={styles.backBtnArrow}>←</Text>
+                    <Text style={styles.backBtnText}>İptal</Text>
+                </TouchableOpacity>
+                <Text style={styles.mainTitle}>Üye Düzenle</Text>
+            </View>
+
             {/* Kişisel */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>👤 Kişisel Bilgiler</Text>
@@ -160,14 +179,10 @@ export default function AddMemberScreen() {
             </View>
 
             {/* Butonlar */}
-            <View style={styles.btnRow}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()}>
-                    <Text style={styles.cancelText}>İptal</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={saving} activeOpacity={0.8}>
-                    {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>➕ Üye Ekle</Text>}
-                </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={saving} activeOpacity={0.8}>
+                {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>💾 Değişiklikleri Kaydet</Text>}
+            </TouchableOpacity>
+
         </ScrollView>
     );
 }
@@ -175,6 +190,11 @@ export default function AddMemberScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#030712' },
     content: { padding: 16, paddingBottom: 40 },
+    headerArea: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+    backBtnWrap: { flexDirection: 'row', alignItems: 'center' },
+    backBtnArrow: { color: '#60a5fa', fontSize: 18, marginRight: 4 },
+    backBtnText: { color: '#60a5fa', fontSize: 15, fontWeight: '600' },
+    mainTitle: { color: '#fff', fontSize: 20, fontWeight: '800', flex: 1, textAlign: 'center', marginRight: 40 },
     section: {
         backgroundColor: '#111827',
         borderRadius: 16,
@@ -223,21 +243,12 @@ const styles = StyleSheet.create({
     pickerOption: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#374151' },
     pickerOptionActive: { backgroundColor: '#1e3a5f' },
     pickerOptionText: { color: '#d1d5db', fontSize: 14 },
-    btnRow: { flexDirection: 'row', gap: 10 },
-    cancelBtn: {
-        flex: 1,
-        backgroundColor: '#1f2937',
-        borderRadius: 14,
-        paddingVertical: 16,
-        alignItems: 'center',
-    },
-    cancelText: { color: '#9ca3af', fontSize: 15, fontWeight: '600' },
     submitBtn: {
-        flex: 2,
         backgroundColor: '#2563eb',
         borderRadius: 14,
         paddingVertical: 16,
         alignItems: 'center',
+        marginTop: 8,
     },
     submitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

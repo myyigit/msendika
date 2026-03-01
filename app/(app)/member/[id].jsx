@@ -50,6 +50,17 @@ export default function MemberDetailScreen() {
     const cfg = durumCfg(member.uyelikDurumu);
 
     const toggleDurum = () => {
+        if (member.uyelikDurumu === 'emekli') {
+            Alert.alert(
+                'Durum Değiştir',
+                'Emekli üyeyi aktif yapmak istediğinize emin misiniz?',
+                [
+                    { text: 'İptal', style: 'cancel' },
+                    { text: 'Aktif Yap', onPress: () => updateMember(member.id, { uyelikDurumu: 'aktif' }) },
+                ]
+            );
+            return;
+        }
         const next = member.uyelikDurumu === 'aktif' ? 'pasif' : 'aktif';
         updateMember(member.id, { uyelikDurumu: next });
     };
@@ -85,8 +96,11 @@ export default function MemberDetailScreen() {
 
             {/* Actions */}
             <View style={styles.actions}>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => router.push(`/(app)/member/edit?id=${member.id}`)} activeOpacity={0.8}>
+                    <Text style={styles.actionBtnText}>✏️ Düzenle</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.actionBtn} onPress={toggleDurum} activeOpacity={0.8}>
-                    <Text style={styles.actionBtnText}>🔄 Durum Değiştir</Text>
+                    <Text style={styles.actionBtnText}>🔄 Durum Değ.</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={handleDelete} activeOpacity={0.8}>
                     <Text style={[styles.actionBtnText, { color: '#f87171' }]}>🗑️ Sil</Text>
@@ -172,7 +186,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     deleteBtn: { borderColor: '#310b0b', backgroundColor: '#1a0505' },
-    actionBtnText: { color: '#d1d5db', fontSize: 13, fontWeight: '600' },
+    actionBtnText: { color: '#d1d5db', fontSize: 12, fontWeight: '600' },
     section: {
         backgroundColor: '#111827',
         borderRadius: 16,

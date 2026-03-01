@@ -21,8 +21,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#030712"
       },
-      "package": "com.ygttech.msendika",
-      "edgeToEdgeEnabled": true
+      "package": "com.ygttech.msendika"
     },
     "web": {
       "favicon": "./assets/favicon.png"
