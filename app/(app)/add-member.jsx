@@ -99,6 +99,7 @@ export default function AddMemberScreen() {
         await new Promise((r) => setTimeout(r, 500));
         const newMember = addMember({ ...form, maas: form.maas ? Number(form.maas) : 0 });
         setSaving(false);
+        setForm(initForm);
         Alert.alert('✅ Başarılı', `${newMember.ad} ${newMember.soyad} eklendi.`, [
             { text: 'Detaya Git', onPress: () => router.push(`/(app)/member/${newMember.id}`) },
             { text: 'Üye Listesi', onPress: () => router.push('/(app)/members') },

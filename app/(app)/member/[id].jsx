@@ -50,6 +50,17 @@ export default function MemberDetailScreen() {
     const cfg = durumCfg(member.uyelikDurumu);
 
     const toggleDurum = () => {
+        if (member.uyelikDurumu === 'emekli') {
+            Alert.alert(
+                'Durum Değiştir',
+                'Emekli üyeyi aktif yapmak istediğinize emin misiniz?',
+                [
+                    { text: 'İptal', style: 'cancel' },
+                    { text: 'Aktif Yap', onPress: () => updateMember(member.id, { uyelikDurumu: 'aktif' }) },
+                ]
+            );
+            return;
+        }
         const next = member.uyelikDurumu === 'aktif' ? 'pasif' : 'aktif';
         updateMember(member.id, { uyelikDurumu: next });
     };

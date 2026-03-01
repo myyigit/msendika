@@ -1,16 +1,59 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mockMembers } from '../data/mockData';
+
+const MEMBERS_KEY = 'ygt_members';
+const COUNTER_KEY = 'ygt_sicil_counter';
 
 const MemberContext = createContext(null);
 
 export function MemberProvider({ children }) {
-    const [members, setMembers] = useState(mockMembers);
+    const [members, setMembers] = useState([]);
+    const [membersLoaded, setMembersLoaded] = useState(false);
+    const counterRef = useRef(null);
+
+    // Başlangıçta AsyncStorage'dan üyeleri yükle
+    useEffect(() => {
+        (async () => {
+            try {
+                const raw = await AsyncStorage.getItem(MEMBERS_KEY);
+                if (raw) {
+                    setMembers(JSON.parse(raw));
+                } else {
+                    // İlk kullanım: mock verileri yükle ve kaydet
+                    setMembers(mockMembers);
+                    await AsyncStorage.setItem(MEMBERS_KEY, JSON.stringify(mockMembers));
+                }
+                // Sicil sayacını yükle
+                const savedCounter = await AsyncStorage.getItem(COUNTER_KEY);
+                if (savedCounter) {
+                    counterRef.current = Number(savedCounter);
+                } else {
+                    const initCount = mockMembers.reduce((max, m) => (m.id > max ? m.id : max), 0);
+                    counterRef.current = initCount;
+                    await AsyncStorage.setItem(COUNTER_KEY, String(initCount));
+                }
+            } catch (_) {
+                setMembers(mockMembers);
+                counterRef.current = mockMembers.length;
+            }
+            setMembersLoaded(true);
+        })();
+    }, []);
+
+    // Üyeler değiştiğinde AsyncStorage'a kaydet
+    useEffect(() => {
+        if (!membersLoaded) return;
+        AsyncStorage.setItem(MEMBERS_KEY, JSON.stringify(members)).catch(() => { });
+    }, [members, membersLoaded]);
 
     const addMember = (data) => {
+        counterRef.current = (counterRef.current || 0) + 1;
+        AsyncStorage.setItem(COUNTER_KEY, String(counterRef.current)).catch(() => { });
         const newMember = {
             ...data,
             id: Date.now(),
-            sicilNo: `SGK-${String(members.length + 1).padStart(3, '0')}`,
+            sicilNo: `SGK-${String(counterRef.current).padStart(3, '0')}`,
             uyelikTarihi: new Date().toISOString().split('T')[0],
         };
         setMembers((prev) => [...prev, newMember]);
@@ -27,6 +70,30 @@ export function MemberProvider({ children }) {
 
     const getMember = (id) => members.find((m) => m.id === Number(id));
 
+    // Yedek al: tüm üyeleri JSON string olarak döndür
+    const exportBackup = useCallback(() => {
+        return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), members });
+    }, [members]);
+
+    // Yedekten geri yükle
+    const importBackup = useCallback(async (jsonString) => {
+        try {
+            const data = JSON.parse(jsonString);
+            if (!data.members || !Array.isArray(data.members)) {
+                return { ok: false, error: 'Geçersiz yedek dosyası.' };
+            }
+            setMembers(data.members);
+            await AsyncStorage.setItem(MEMBERS_KEY, JSON.stringify(data.members));
+            // Sayacı güncelle
+            const maxId = data.members.reduce((max, m) => (m.id > max ? m.id : max), 0);
+            counterRef.current = maxId;
+            await AsyncStorage.setItem(COUNTER_KEY, String(maxId));
+            return { ok: true, count: data.members.length };
+        } catch (_) {
+            return { ok: false, error: 'Dosya okunamadı veya bozuk.' };
+        }
+    }, []);
+
     const stats = {
         toplam: members.length,
         aktif: members.filter((m) => m.uyelikDurumu === 'aktif').length,
@@ -35,7 +102,11 @@ export function MemberProvider({ children }) {
     };
 
     return (
-        <MemberContext.Provider value={{ members, addMember, updateMember, deleteMember, getMember, stats }}>
+        <MemberContext.Provider value={{
+            members, membersLoaded,
+            addMember, updateMember, deleteMember, getMember,
+            stats, exportBackup, importBackup,
+        }}>
             {children}
         </MemberContext.Provider>
     );

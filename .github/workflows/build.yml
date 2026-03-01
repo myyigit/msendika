@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: msendika
+
 jobs:
   build:
     name: Build Android APK
@@ -19,6 +23,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: msendika/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -27,12 +32,12 @@ jobs:
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+          eas-token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build APK
         run: eas build --platform android --profile preview --non-interactive --no-wait
 
-      - name: Wait and download APK
+      - name: Build info
         run: |
           echo "Build started on EAS servers."
           echo "Download your APK from: https://expo.dev/accounts/myyigit/projects/msendika/builds"
